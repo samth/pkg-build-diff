@@ -40,18 +40,18 @@
           [else (error 'url->value "expected url-string?")]))
   (call/input-url u* get-pure-port/cached port->string))
 
-(define v6.4-site "https://pkg-build.racket-lang.org/")
-;(define v6.4-pre-site "http://next-pkg-build.racket-lang.org/")
-(define current-site "https://plt.eecs.northwestern.edu/pkg-build/")
+(define release-site "https://pkg-build.racket-lang.org/")
+;(define release-pre-site "http://next-pkg-build.racket-lang.org/")
+(define snapshot-site "https://plt.eecs.northwestern.edu/pkg-build/")
 
 (define (pkg->author p)
   (hash-ref (url->value (format "https://pkgs.racket-lang.org/pkg/~a" p)) 'author))
 
 
 
-(define v6.4 (url->value (string-append v6.4-site "summary.rktd")))
-;(define v6.4-pre (url->value (string-append v6.4-pre-site "summary.rktd")))
-(define current (url->value (string-append current-site "summary.rktd")))
+(define release (url->value (string-append release-site "summary.rktd")))
+;(define release-pre (url->value (string-append release-pre-site "summary.rktd")))
+(define snapshot (url->value (string-append snapshot-site "summary.rktd")))
 
 (define (status r)
   (define h
@@ -116,7 +116,7 @@
 (define dep-fail (all-has-key 'dep-failure-log))
 (define (all-pkgs h) (hash-keys h))
 
-(define diffs (diff v6.4 current))
+(define diffs (diff release snapshot))
 
 (define (explain-build-failure h server-url)
   (define log-url (hash-ref h 'failure-log))
@@ -197,3 +197,6 @@
                   "spencer@florence.io"
                   "tonygarnockjones@gmail.com"))))
 
+
+(module+ main
+  (pretty-print (compare-sites release-site snapshot-site)))
