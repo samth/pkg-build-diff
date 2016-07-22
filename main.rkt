@@ -15,16 +15,17 @@
   (define p (build-path td (string->path-element (regexp-replace* #rx"/" (u:url->string url) "_"))))
   (if (and (file-exists? p) (not-old? p))
       (begin
-        ;(printf "using cached path for ~a\n" (u:url->string url))
+        (printf "using cached path ~a for ~a\n" p (u:url->string url))
         (open-input-file p))
       (begin
         (printf ">>> fetching ~a\n" (u:url->string url))
         (let ([file-p (open-output-file p #:exists 'truncate)]
               [result (open-output-string)])
-          (call/input-url url get-pure-port
+          (with-handlers ([exn? (λ (e) (delete-file p) (raise e))])
+              (call/input-url url get-pure-port
                           (λ (i)
                             (copy-port i file-p result)
-                            (open-input-string (get-output-string result))))))))
+                            (open-input-string (get-output-string result)))))))))
 
 (define (url->value u)
   (define u*
@@ -195,7 +196,9 @@
                   "jensaxel@soegaard.net"
                   "neil.toronto@gmail.com"
                   "spencer@florence.io"
-                  "tonygarnockjones@gmail.com"))))
+                  "tonygarnockjones@gmail.com"
+                  "types@ccs.neu.edu"
+                  "leif@leifandersen.net"))))
 
 
 (module+ main
