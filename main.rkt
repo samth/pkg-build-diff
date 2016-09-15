@@ -42,7 +42,8 @@
   (call/input-url u* get-pure-port/cached port->string))
 
 (define release-site "https://pkg-build.racket-lang.org/")
-;(define release-pre-site "http://next-pkg-build.racket-lang.org/")
+(define release-pre-site "http://next-pkg-build.racket-lang.org/")
+(define nwu-release-pre-site "https://plt.eecs.northwestern.edu/release-pkg-build/")
 (define snapshot-site "https://plt.eecs.northwestern.edu/pkg-build/")
 
 (define (pkg->author p)
@@ -54,7 +55,8 @@
 ;(define release-pre (url->value (string-append release-pre-site "summary.rktd")))
 (define snapshot (url->value (string-append snapshot-site "summary.rktd")))
 
-(define (status r)
+(define/contract (status r)
+  (-> hash? any)
   (define h
     (make-hash (map cons
                     '(failure-log conflicts-log dep-failure-log min-failure-log test-failure-log)
@@ -101,15 +103,18 @@
   (for*/hash ([k (remove-duplicates (append (hash-keys v1) (hash-keys v2)))]
               [v (in-value (hash-ref v1 k 'missing))]
               [other (in-value (hash-ref v2 k 'missing))]
+              #:unless 
+              (or (eq? other 'missing) (eq? v 'missing))
               #:when
-              (or (eq? other 'missing)
-                  (if better? (worse? other v) (worse? v other))))
+              (if better? (worse? other v) (worse? v other)))
     (values k (list (if (symbol? v) v (status v))
                     (if (symbol? other) other (status other))))))
 
-(define ((all-has-key key) h) (for/list ([(k v) h]
-                                       #:when (hash-ref v key #f))
-                              k))
+(define/contract ((all-has-key key) h) 
+  (-> symbol? (-> (hash/c any/c (hash/c symbol? any/c)) any))
+  (for/list ([(k v) h]
+             #:when (hash-ref v key #f))
+    k))
 
 (define conflicts (all-has-key 'conflicts-log))
 (define build-fail (all-has-key 'failure-log))
@@ -120,6 +125,8 @@
 (define diffs (diff release snapshot))
 
 (define (explain-build-failure h server-url)
+  (unless (hash? h)
+    (raise-argument-error 'explain-build-failure "hash?" h))
   (define log-url (hash-ref h 'failure-log))
   (unless log-url
     (error 'explain-build-failure "can't explain nonexistent failure"))
@@ -202,4 +209,8 @@
 
 
 (module+ main
-  (pretty-print (compare-sites release-site snapshot-site)))
+  (printf "\n\n\tCurrent Release vs HEAD\n========================================\n")
+  (pretty-print (compare-sites release-site snapshot-site))
+  (printf "\n\n\tCurrent Release vs Next Release\n========================================\n")
+  (pretty-print (compare-sites release-site nwu-release-pre-site))
+  )
