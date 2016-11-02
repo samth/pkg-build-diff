@@ -15,10 +15,10 @@
   (define p (build-path td (string->path-element (regexp-replace* #rx"/" (u:url->string url) "_"))))
   (if (and (file-exists? p) (not-old? p))
       (begin
-        (printf "using cached path ~a for ~a\n" p (u:url->string url))
+        ;(printf "using cached path ~a for ~a\n" p (u:url->string url))
         (open-input-file p))
       (begin
-        (printf ">>> fetching ~a\n" (u:url->string url))
+        ;(printf ">>> fetching ~a\n" (u:url->string url))
         (let ([file-p (open-output-file p #:exists 'truncate)]
               [result (open-output-string)])
           (with-handlers ([exn? (λ (e) (delete-file p) (raise e))])
