@@ -47,7 +47,10 @@
 (define snapshot-site "https://plt.eecs.northwestern.edu/pkg-build/")
 
 (define (pkg->author p)
-  (hash-ref (url->value (format "https://pkgs.racket-lang.org/pkg/~a" p)) 'author))
+  (define pkg-info (url->value (format "https://pkgs.racket-lang.org/pkg/~a" p)))
+  (cond [(hash? pkg-info)
+         (hash-ref pkg-info 'author)]
+        [else "<unknown>"])) ; something went wrong
 
 
 
