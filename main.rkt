@@ -161,6 +161,7 @@
            [else 'dep-not-exist])]
     [(regexp-match "raco setup:.*no #%.* syntax transformer is bound" log-str) 'macro-error]
     [(regexp-match "cannot instantiate `racket/gui/base' a second time" log-str) 'gui-docs]
+    [(regexp-match "timeout" log-str) 'timeout]
     [else 'unknown]))
 
 (define (list-small a b)
@@ -184,17 +185,20 @@
                                (explain-build-failure (hash-ref s1-hash p) s1))
                           (and (member p s2-fails)
                                (explain-build-failure (hash-ref s2-hash p) s2))))))
-  (list 'worse result-hash
-        'better (compare s1-hash s2-hash #:better? #t)
-        'build-failure-explain (reverse-hash explain-hash)
-        'failing-plt-authors (reverse-hash (for*/hash ([(k v) (in-hash explain-hash)]
-                                                      [a (in-value (pkg->author k))]
-                                                      #:when (plt? a))
-                                             (values k a)))
-        'failing-other-authors (reverse-hash (for*/hash ([(k v) (in-hash explain-hash)]
-                                                      [a (in-value (pkg->author k))]
-                                                      #:unless (plt? a))
-                                               (values k a)))))
+  (append (list 'worse result-hash)
+          (list 'better (compare s1-hash s2-hash #:better? #t))
+          (if (explain?)
+              (list 
+               'build-failure-explain (reverse-hash explain-hash) 
+               'failing-plt-authors (reverse-hash (for*/hash ([(k v) (in-hash explain-hash)]
+                                                              [a (in-value (pkg->author k))]
+                                                              #:when (plt? a))
+                                                    (values k a)))
+               'failing-other-authors (reverse-hash (for*/hash ([(k v) (in-hash explain-hash)]
+                                                                [a (in-value (pkg->author k))]
+                                                                #:unless (plt? a))
+                                                      (values k a))))
+               null)))
 
 (define (plt? a)
   (or (regexp-match "@racket-lang.org" a)
@@ -205,12 +209,25 @@
                   "spencer@florence.io"
                   "tonygarnockjones@gmail.com"
                   "types@ccs.neu.edu"
+                  "mflatt@cs.utah.edu"
+                  ""
                   "leif@leifandersen.net"))))
+
+(define explain? (make-parameter #f))
 
 
 (module+ main
-  (printf "\n\n\tCurrent Release vs HEAD\n========================================\n")
-  (pretty-print (compare-sites release-site snapshot-site))
-  (printf "\n\n\tCurrent Release vs Next Release\n========================================\n")
-  (pretty-print (compare-sites release-site nwu-release-pre-site))
+  (require racket/cmdline)
+  (define next-release? #f)
+  (define nightly? #t)
+  (command-line
+   #:once-each
+   [("--release") "compare the next release" (set! next-release? #t)]
+   [("--explain") "provide more details" (explain? #t)])
+  (when nightly?
+    (printf "\n\n\tCurrent Release vs HEAD\n========================================\n")
+    (pretty-print (compare-sites release-site snapshot-site)))
+  (when next-release?
+    (printf "\n\n\tCurrent Release vs Next Release\n========================================\n")
+    (pretty-print (compare-sites release-site nwu-release-pre-site)))
   )
