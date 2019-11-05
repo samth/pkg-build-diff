@@ -188,7 +188,9 @@
                                (explain-build-failure (hash-ref s1-hash p) s1))
                           (and (member p s2-fails)
                                (explain-build-failure (hash-ref s2-hash p) s2))))))
-  (append (list 'worse result-hash)
+  (append (list 'url-1 s1)
+          (list 'url-2 s2)
+          (list 'worse result-hash)
           (list 'better (compare s1-hash s2-hash #:better? #t))
           (if (explain?)
               (list 
