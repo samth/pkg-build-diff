@@ -15,10 +15,10 @@
   (define p (build-path td (string->path-element (regexp-replace* #rx"/" (u:url->string url) "_"))))
   (if (and (file-exists? p) (not-old? p))
       (begin
-        ;(printf "using cached path ~a for ~a\n" p (u:url->string url))
+        (printf "using cached path ~a for ~a\n" p (u:url->string url))
         (open-input-file p))
       (begin
-        ;(printf ">>> fetching ~a\n" (u:url->string url))
+        (printf ">>> fetching ~a\n" (u:url->string url))
         (let ([file-p (open-output-file p #:exists 'truncate)]
               [result (open-output-string)])
           (with-handlers ([exn? (λ (e) (delete-file p) (raise e))])
@@ -182,12 +182,13 @@
   (define s2-fails (build-fail s2-hash))
   (define result-hash (compare s1-hash s2-hash))
   (define explain-hash
-    (for/hash ([p (remove-duplicates (append s1-fails s2-fails))])
-      (values p
-              (list-small (and (member p s1-fails)
-                               (explain-build-failure (hash-ref s1-hash p) s1))
-                          (and (member p s2-fails)
-                               (explain-build-failure (hash-ref s2-hash p) s2))))))
+    (delay
+      (for/hash ([p (remove-duplicates (append s1-fails s2-fails))])
+        (values p
+                (list-small (and (member p s1-fails)
+                                 (explain-build-failure (hash-ref s1-hash p) s1))
+                            (and (member p s2-fails)
+                                 (explain-build-failure (hash-ref s2-hash p) s2)))))))
   (append (list 'url-1 s1)
           (list 'url-2 s2)
           (list 'worse result-hash)
@@ -195,11 +196,11 @@
           (if (explain?)
               (list 
                'build-failure-explain (reverse-hash explain-hash) 
-               'failing-plt-authors (reverse-hash (for*/hash ([(k v) (in-hash explain-hash)]
+               'failing-plt-authors (reverse-hash (for*/hash ([(k v) (in-hash (force explain-hash))]
                                                               [a (in-value (pkg->author k))]
                                                               #:when (plt? a))
                                                     (values k a)))
-               'failing-other-authors (reverse-hash (for*/hash ([(k v) (in-hash explain-hash)]
+               'failing-other-authors (reverse-hash (for*/hash ([(k v) (in-hash (force explain-hash))]
                                                                 [a (in-value (pkg->author k))]
                                                                 #:unless (plt? a))
                                                       (values k a))))
