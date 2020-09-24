@@ -195,7 +195,7 @@
           (list 'better (compare s1-hash s2-hash #:better? #t))
           (if (explain?)
               (list 
-               'build-failure-explain (reverse-hash explain-hash) 
+               'build-failure-explain (reverse-hash (force explain-hash)) 
                'failing-plt-authors (reverse-hash (for*/hash ([(k v) (in-hash (force explain-hash))]
                                                               [a (in-value (pkg->author k))]
                                                               #:when (plt? a))
