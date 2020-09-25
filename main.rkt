@@ -172,7 +172,7 @@
 
 (define (reverse-hash orig)
   (for/fold ([h (hash)])
-            ([(k v) orig])
+            ([(k v) (force orig)])
     (hash-update h v (λ (old) (cons k old)) null)))
 
 (define (compare-sites s1 s2)
