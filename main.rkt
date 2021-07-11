@@ -43,8 +43,8 @@
 
 (define release-site "https://pkg-build.racket-lang.org/")
 (define release-pre-site "http://next-pkg-build.racket-lang.org/")
-(define nwu-release-pre-site "https://plt.eecs.northwestern.edu/release-pkg-build/")
-(define snapshot-site "https://plt.eecs.northwestern.edu/pkg-build/")
+(define nwu-release-pre-site "https://plt.cs.northwestern.edu/release-pkg-build/")
+(define snapshot-site "https://plt.cs.northwestern.edu/pkg-build/")
 
 (define (pkg->author p)
   (define pkg-info (url->value (format "https://pkgs.racket-lang.org/pkg/~a" p)))
@@ -52,11 +52,20 @@
          (hash-ref pkg-info 'author)]
         [else "<unknown>"])) ; something went wrong
 
+;; fetch the summary hash, make sure it's a hash
+(define (fetch-summary-hash site)
+  (define url (string-append site "summary.rktd"))
+  (define value (url->value url))
+  (unless (hash? value)
+    (error 'fetch-summary-hash
+           "expected hash table from url ~v, got something else: ~e"
+           url value))
+  value)
 
+(define release (fetch-summary-hash release-site))
+;(define release-pre (fetch-summary-hash release-pre-site))
+(define snapshot (fetch-summary-hash snapshot-site))
 
-(define release (url->value (string-append release-site "summary.rktd")))
-;(define release-pre (url->value (string-append release-pre-site "summary.rktd")))
-(define snapshot (url->value (string-append snapshot-site "summary.rktd")))
 
 (define/contract (status r)
   (-> hash? any)
