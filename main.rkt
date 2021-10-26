@@ -8,12 +8,14 @@
   (< (- (current-seconds) (file-or-directory-modify-seconds p))
      threshold))
 
+(define caching? (make-parameter #f))
+
 (provide get-pure-port/cached)
 
 (define (get-pure-port/cached url)
   (define td (find-system-path 'temp-dir))
   (define p (build-path td (string->path-element (regexp-replace* #rx"/" (u:url->string url) "_"))))
-  (if (and (file-exists? p) (not-old? p))
+  (if (and (file-exists? p) (not-old? p) (caching?))
       (begin
         (printf "using cached path ~a for ~a\n" p (u:url->string url))
         (open-input-file p))
@@ -22,7 +24,7 @@
         (let ([file-p (open-output-file p #:exists 'truncate)]
               [result (open-output-string)])
           (with-handlers ([exn? (λ (e) (delete-file p) (raise e))])
-              (call/input-url url get-pure-port
+            (call/input-url url (lambda (u [h null]) (get-pure-port u h #:redirections 5))
                           (λ (i)
                             (copy-port i file-p result)
                             (open-input-string (get-output-string result)))))))))
@@ -66,6 +68,9 @@
 ;(define release-pre (fetch-summary-hash release-pre-site))
 (define snapshot (fetch-summary-hash snapshot-site))
 
+;(define release (url->value (string-append release-site "summary.rktd")))
+;(define release-pre (url->value (string-append release-pre-site "summary.rktd")))
+;(define snapshot (url->value (string-append snapshot-site "summary.rktd")))
 
 (define/contract (status r)
   (-> hash? any)
@@ -134,7 +139,7 @@
 (define dep-fail (all-has-key 'dep-failure-log))
 (define (all-pkgs h) (hash-keys h))
 
-(define diffs (diff release snapshot))
+;(define diffs (diff release snapshot))
 
 (define (explain-build-failure h server-url)
   (unless (hash? h)
@@ -187,6 +192,11 @@
 (define (compare-sites s1 s2)
   (define s1-hash (url->value (string-append s1 "summary.rktd")))
   (define s2-hash (url->value (string-append s2 "summary.rktd")))
+  (unless (hash? s1-hash)
+    (error 'compare-sites "site ~a did not have a hash\n   value was: ~s" s1 s1-hash))
+  (unless (hash? s2-hash)
+    (error 'compare-sites "site ~a did not have a hash\n   value was: ~s" s2 s2-hash))
+  ;(printf "~s ~s\n" s1-hash s2-hash)
   (define s1-fails (build-fail s1-hash))
   (define s2-fails (build-fail s2-hash))
   (define result-hash (compare s1-hash s2-hash))
@@ -230,19 +240,43 @@
 
 (define explain? (make-parameter #f))
 
+(define (check-printer h)
+  (match-define (list 'url-1 u1 'url-2 u2 'worse w 'better _) h)
+  (define l (sort #:key car  (hash-map w cons) string<?))
+  (printf "### Build Failures\n")
+  (for ([(p result) (in-dict l)]
+        #:when (equal? (second result) 'build-fail))
+    (printf "- [ ] ~a ~aserver/built/fail/~a.txt\n" p u2 p))
+  (printf "### Test Failures\n")
+  (for ([(p result) (in-dict l)]
+        #:when (equal? (second result) 'test-fail))
+    (printf "- [ ] ~a ~aserver/built/test-fail/~a.txt\n" p u2 p))
+  (printf "### Other Failures\n")
+  (for ([(p result) (in-dict l)]
+        #:unless (equal? (second result) 'test-fail)
+        #:unless (equal? (second result) 'build-fail))
+    (printf "- [ ] ~a\n" p))
+  )
+
 
 (module+ main
   (require racket/cmdline)
   (define next-release? #f)
   (define nightly? #t)
+  (define checkboxes #f)
   (command-line
    #:once-each
    [("--release") "compare the next release" (set! next-release? #t)]
+   [("--checkboxes") "print as checkboxes for GitHub" (set! checkboxes #t)]
    [("--explain") "provide more details" (explain? #t)])
+  (define (printer v)
+    (if checkboxes
+        (check-printer v)
+        (pretty-print v)))
   (when nightly?
     (printf "\n\n\tCurrent Release vs HEAD\n========================================\n")
-    (pretty-print (compare-sites release-site snapshot-site)))
+    (printer (compare-sites release-site snapshot-site)))
   (when next-release?
     (printf "\n\n\tCurrent Release vs Next Release\n========================================\n")
-    (pretty-print (compare-sites release-site nwu-release-pre-site)))
+    (printer (compare-sites release-site nwu-release-pre-site)))
   )
