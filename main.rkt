@@ -81,7 +81,7 @@
   (define (log->status v)
     (hash-ref h v))
   (define fail
-    (for/first ([k '(failure-log conflicts-log dep-failure-log test-failure-log min-failure-log)]
+    (for/first ([k '(failure-log conflicts-log test-failure-log dep-failure-log min-failure-log)]
                 #:when (hash-ref r k #f))
       (log->status k)))
   (or fail
@@ -92,9 +92,9 @@
 (define code-level
   (make-hash `((build-fail . 0)
                (install-conflict . 1)
-               (dep-fail . 2)
+               (dep-fail . 3)
                (needs-extra-deps . 4)
-               (test-fail . 3)
+               (test-fail . 2)
                (no-docs . 5)
                (success . 6))))
 
@@ -251,10 +251,13 @@
   (for ([(p result) (in-dict l)]
         #:when (equal? (second result) 'test-fail))
     (printf "- [ ] ~a ~aserver/built/test-fail/~a.txt\n" p u2 p))
+  (printf "### Dependency Failures\n")
+  (for ([(p result) (in-dict l)]
+        #:when (equal? (second result) 'dep-fail))
+    (printf "- [ ] ~a ~aserver/built/deps/~a.txt\n" p u2 p))
   (printf "### Other Failures\n")
   (for ([(p result) (in-dict l)]
-        #:unless (equal? (second result) 'test-fail)
-        #:unless (equal? (second result) 'build-fail))
+        #:unless (member (second result) '(test-fail build-fail dep-fail)))
     (printf "- [ ] ~a\n" p))
   )
 
