@@ -266,11 +266,12 @@
   (require racket/cmdline)
   (define next-release? #f)
   (define nightly? #t)
-  (define checkboxes #f)
+  (define checkboxes #t)
   (command-line
    #:once-each
    [("--release") "compare the next release" (set! next-release? #t)]
-   [("--checkboxes") "print as checkboxes for GitHub" (set! checkboxes #t)]
+   [("--no-checkboxes") "use sexp output format" (set! checkboxes #f)]
+   [("--checkboxes") "use checkboxes, the default"]
    [("--explain") "provide more details" (explain? #t)])
   (define (printer v)
     (if checkboxes
