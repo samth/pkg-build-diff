@@ -47,6 +47,7 @@
 (define release-pre-site "http://next-pkg-build.racket-lang.org/")
 (define nwu-release-pre-site "https://plt.cs.northwestern.edu/release-pkg-build/")
 (define snapshot-site "https://plt.cs.northwestern.edu/pkg-build/")
+(define new-snapshot-site "https://plt.cs.northwestern.edu/new-snapshots/")
 
 (define (pkg->author p)
   (define pkg-info (url->value (format "https://pkgs.racket-lang.org/pkg/~a" p)))
@@ -267,9 +268,11 @@
   (define next-release? #f)
   (define nightly? #t)
   (define checkboxes #f)
+  (define new-snapshot #f)
   (command-line
    #:once-each
    [("--release") "compare the next release" (set! next-release? #t)]
+   [("--new-snapshot") "compare the new snapshots site" (set! new-snapshot #t)]
    [("--checkboxes") "print as checkboxes for GitHub" (set! checkboxes #t)]
    [("--explain") "provide more details" (explain? #t)])
   (define (printer v)
@@ -279,6 +282,9 @@
   (when nightly?
     (printf "\n\n\tCurrent Release vs HEAD\n========================================\n")
     (printer (compare-sites release-site snapshot-site)))
+  (when new-snapshot
+    (printf "\n\n\tCurrent Release vs New Snapshot Site\n========================================\n")
+    (printer (compare-sites release-site new-snapshot-site)))
   (when next-release?
     (printf "\n\n\tCurrent Release vs Next Release\n========================================\n")
     (printer (compare-sites release-site nwu-release-pre-site)))
