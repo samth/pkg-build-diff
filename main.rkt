@@ -10,7 +10,13 @@
 
 (define caching? (make-parameter #f))
 
-(provide get-pure-port/cached)
+(provide get-pure-port/cached
+         compare-sites
+         release-site
+         nwu-release-pre-site
+         fail-log-url
+         url->string
+         caching?)
 
 (define (get-pure-port/cached url)
   (define td (find-system-path 'temp-dir))
@@ -241,26 +247,40 @@
 
 (define explain? (make-parameter #f))
 
+
+(define fail-path-stem "server/built/fail/")
+
 (define (check-printer h)
   (match-define (list 'url-1 u1 'url-2 u2 'worse w 'better _) h)
   (define l (sort #:key car  (hash-map w cons) string<?))
   (printf "### Build Failures\n")
   (for ([(p result) (in-dict l)]
         #:when (equal? (second result) 'build-fail))
-    (printf "- [ ] ~a ~aserver/built/fail/~a.txt\n" p u2 p))
+    (printf "- [ ] ~a ~a\n" p (fail-log-url p u2 'build-fail)))
   (printf "### Test Failures\n")
   (for ([(p result) (in-dict l)]
         #:when (equal? (second result) 'test-fail))
-    (printf "- [ ] ~a ~aserver/built/test-fail/~a.txt\n" p u2 p))
+    (printf "- [ ] ~a ~a\n" p (fail-log-url p u2 'test-fail)))
   (printf "### Dependency Failures\n")
   (for ([(p result) (in-dict l)]
         #:when (equal? (second result) 'dep-fail))
-    (printf "- [ ] ~a ~aserver/built/deps/~a.txt\n" p u2 p))
+    (printf "- [ ] ~a ~a\n" p (fail-log-url p u2 'dep-fail)))
   (printf "### Other Failures\n")
   (for ([(p result) (in-dict l)]
         #:unless (member (second result) '(test-fail build-fail dep-fail)))
-    (printf "- [ ] ~a\n" p))
-  )
+    (printf "- [ ] ~a\n" p)))
+
+;; returns a URL or #f if no URL is available for this kind of failure
+(define (fail-log-url pkg url-stem kind)
+  (match kind
+    ['build-fail
+     (~a url-stem "server/built/fail/" pkg ".txt")]
+    ['test-fail
+     (~a url-stem "server/built/test-fail/" pkg ".txt")]
+    ['dep-fail
+     (~a url-stem "server/built/deps/" pkg ".txt")]
+    [other
+     #f]))
 
 
 (module+ main
