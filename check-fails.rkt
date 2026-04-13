@@ -5,7 +5,8 @@
 
 (require threading
          scramble/regexp
-         "main.rkt")
+         "main.rkt"
+         "build-log-info.rkt")
 
 (caching? #t)
 
@@ -29,14 +30,17 @@
       (filter (λ (pr) (equal? (caddr pr) 'build-fail)) _)
       (map first _)))
 
+(for/list ([pkg build-fail-pkgs])
+  (list pkg (hash-ref archiving-log-hash pkg #f)))
 
-
+#;(
 (define gitea-lines
   (regexp-split (px "\n")
                 "tcp-connect: host not found
   hostname: gitea.suzanne.soy
   port number: 443
   system error: Temporary failure in name resolution; gai_err=-3"))
+
 
 ;; is `a` a sublist of `b` ?
 ;; this implementation sucks when a is long...
@@ -56,7 +60,7 @@
                   (fail-log-url pkg url2 'build-fail)))))
 
 (define-values (a b)
-  (partition gitea-fail? build-fail-pkgs))
+  (partition gitea-fail? build-fail-pkgs)))
 
 
 
